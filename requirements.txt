@@ -1,0 +1,11 @@
+--extra-index-url https://download.pytorch.org/whl/cu121
+transformers
+datasets
+peft
+bitsandbytes
+accelerate
+pillow
+torch
+torchvision
+torchaudio
+gradio
