@@ -1,4 +1,7 @@
-.venv/
+node_modules/
+.env
 __pycache__/
-*.pyc
-PROJECT_MASTER_PLAN.md
+*.ipynb_checkpoints
+*.json
+!package.json
+!next.config.js

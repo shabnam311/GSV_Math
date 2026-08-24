@@ -1,0 +1,30 @@
+name: Deploy to Hugging Face Space
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          lfs: true
+
+      - name: Push to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          git config --global credential.helper store
+          echo "https://user:$HF_TOKEN@huggingface.co" > ~/.git-credentials
+          
+          # Replace <username> below with actual username
+          git remote add space https://user:$HF_TOKEN@huggingface.co/spaces/shabnam311/gsv-math-demo
+          
+          # Push the backend directory as the root of the space
+          git subtree push --prefix backend space main
