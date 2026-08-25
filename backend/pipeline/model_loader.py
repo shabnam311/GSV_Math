@@ -6,7 +6,7 @@ from peft import PeftModel
 # HF_TOKEN is injected by the Space automatically if set in secrets
 HF_TOKEN = os.getenv("HF_TOKEN")
 # Expecting user to provide this or set it in Space variables
-LORA_REPO_ID = os.getenv("LORA_REPO_ID", "YOUR_HF_USERNAME/gsv-math-qwen2.5-vl-lora")
+LORA_REPO_ID = os.getenv("LORA_REPO_ID", "Shabuuuuuuuuuuu/GSV-Math-Qwen2.5-VL-7B-Expert")
 
 def load_models():
     """Loads the base model in 4-bit and applies the LoRA adapter."""

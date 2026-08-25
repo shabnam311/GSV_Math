@@ -12,3 +12,5 @@ sympy
 spacy
 Pillow
 huggingface_hub
+
+modal
