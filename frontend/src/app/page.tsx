@@ -64,7 +64,7 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [result, setResult] = useState<any>(null);
+  const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -139,9 +139,9 @@ export default function Home() {
       
       setResult(data);
       setStatus("done");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStatus("error");
-      setErrorMsg(err.message || String(err));
+      setErrorMsg(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -180,13 +180,13 @@ export default function Home() {
           
           {Object.keys(votes).length > 0 && (
             <div className="votes">
-              {Object.entries(votes).sort((a: any, b: any) => b[1] - a[1]).map(([k, v]: [string, any]) => (
+              {Object.entries(votes).sort((a: [string, unknown], b: [string, unknown]) => (b[1] as number) - (a[1] as number)).map(([k, v]: [string, unknown]) => (
                 <div className="vote-row" key={k}>
                   <span className="vote-key">{k}</span>
                   <div className="vote-track">
-                    <div className="vote-fill" style={{ width: `${(v / maxVote * 100).toFixed(0)}%` }}></div>
+                    <div className="vote-fill" style={{ width: `${((v as number) / maxVote * 100).toFixed(0)}%` }}></div>
                   </div>
-                  <span className="vote-val">{Number(v).toFixed(2)}</span>
+                  <span className="vote-val">{Number(v as number).toFixed(2)}</span>
                 </div>
               ))}
             </div>
