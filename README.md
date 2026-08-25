@@ -1,52 +1,79 @@
-# GSV-Math: Grounded Self-Verifying Math VQA
+﻿# GSV-Math: Grounded Self-Verifying Math VQA
 
-[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshabnam311%2FGSV_Math%2Ftree%2Fmain%2Ffrontend)
-[![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces)
+[![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshabnam311%2FGSV_Math)
 
-GSV-Math is a vision-language reasoning pipeline that shows its work. It doesn't just return an answer—it reasons over a mathematical diagram, checks its own reasoning using an open-vocabulary object detector (OWL-ViT), and applies Confidence-Weighted Self-Consistency (CISC) to output the most visually-grounded final answer.
+GSV-Math is a vision-language reasoning pipeline built to solve complex geometric and mathematical diagrams. It utilizes a fine-tuned **Qwen2.5-VL-7B-Instruct** model, paired with Confidence-Weighted Self-Consistency (CISC) to vote on multiple semantic reasoning paths and arrive at the most robust final answer.
 
 ## Tech Stack
-* **Reasoning Backbone:** Qwen2.5-VL-7B-Instruct (4-bit, via Unsloth)
-* **Grounding Module:** OWL-ViT (`google/owlvit-base-patch32`)
-* **Text Extraction:** spaCy (`en_core_web_sm`)
-* **Voting Strategy:** CISC (Confidence-Weighted Self-Consistency), k=3-5 samples
-* **Backend Inference:** FastAPI on Hugging Face Spaces (ZeroGPU)
-* **Frontend UI:** Vercel (Static HTML/JS or Next.js)
+* **Reasoning Backbone:** Qwen2.5-VL-7B-Instruct (Fine-tuned with Unsloth)
+* **Model Checkpoint:** [Shabuuuuuuuuuuu/GSV-Math-Qwen2.5-VL-7B-Expert](https://huggingface.co/Shabuuuuuuuuuuu/GSV-Math-Qwen2.5-VL-7B-Expert)
+* **Voting Strategy:** CISC (Confidence-Weighted Self-Consistency)
+* **Backend Inference:** Serverless GPU via [Modal](https://modal.com/) (FastAPI + T4 GPU)
+* **Frontend UI:** Next.js + Tailwind CSS, hosted on [Vercel](https://vercel.com/)
 
-## Quick Start
+## Results
+The model was fine-tuned and evaluated against mathematical reasoning benchmarks. 
 
-### 1. Live Demo
-* **Frontend UI:** [https://gsv-math.vercel.app](https://gsv-math.vercel.app) *(Replace with actual Vercel URL)*
-* **Backend API (HF Space):** [https://huggingface.co/spaces/username/gsv-math-demo](https://huggingface.co/spaces/username/gsv-math-demo) *(Replace with actual Space URL)*
+| Metric | Accuracy |
+|--------|----------|
+| Zero-shot Baseline | 16.30% |
+| **Fine-Tuned (Blind Test)** | **68.30%** |
+| Fine-Tuned (Holdout) | 94.00% |
 
-### 2. GitHub Repository
-* **Repository:** [https://github.com/shabnam311/GSV_Math](https://github.com/shabnam311/GSV_Math)
+## Live Demo
+The application features a custom, lightweight "paper worksheet" UI that interacts directly with the serverless GPU backend.
 
-### 3. Run Locally
+- **Frontend:** [gsv-math.vercel.app](https://gsv-math-git-main-shabnam311s-projects.vercel.app) *(or your primary Vercel domain)*
+- **Backend:** Hosted serverlessly on Modal.
 
-**Backend:**
-\`\`\`bash
-cd backend
-pip install -r requirements.txt
-python -m spacy download en_core_web_sm
-uvicorn api:app --reload --port 7860
-\`\`\`
+## Project Structure
+```text
+GSV_Math/
+├── backend/            # Modal serverless GPU backend (FastAPI)
+│   ├── modal_app.py    # Endpoint definitions and Model loading
+│   └── pipeline/       # CISC voting, prompt formatting, model inference
+├── frontend/           # Next.js React web application
+│   ├── src/app/        # Page routing, React components, and CSS
+│   └── package.json
+└── project_notebooks/  # Training, fine-tuning, and evaluation scripts (Unsloth)
+```
 
-**Frontend:**
-Simply open \`frontend/index.html\` in your browser, or deploy to Vercel using the root \`frontend/\` directory.
+## Deployment / Running Locally
 
-## Results (MathVista)
+### 1. Deploy the Backend (Modal)
+You will need a free [Modal](https://modal.com) account and a Hugging Face token.
 
-*These results reflect the evaluated zero-shot and CISC-grounded accuracy on the MathVista Testmini split.*
+```bash
+pip install modal
+modal setup
 
-| Model / Configuration | Accuracy |
-|-----------------------|----------|
-| LLaVA-1.5-7B (Baseline)| ~22.3%  |
-| Qwen2.5-VL-7B (Zero-shot) | *Evaluating...* |
-| Qwen2.5-VL-7B + OWL-ViT (CISC) | *Evaluating...* |
+# Go to Modal Dashboard -> Secrets
+# Create a Custom secret named "huggingface-secret"
+# Add a key named HF_TOKEN and paste your Hugging Face Read Token
 
-## Known Limitations
-* **Zero-Shot Backbone:** Currently running zero-shot Qwen2.5-VL-7B-Instruct. Domain-specific fine-tuning (SFT) has not been applied yet.
-* **GPU Quota:** The live demo runs on Hugging Face ZeroGPU (free tier). You may occasionally hit a quota limit or experience cold-start delays (~1-2 minutes) if the Space is idle.
-* **OWL-ViT Generalization:** Open-vocabulary object detection works exceptionally well on concrete diagram features, but may struggle with purely abstract/symbolic mathematical annotations (e.g., highly stylized angle markers).
+# Deploy the backend
+modal deploy backend/modal_app.py
+```
+This will output a live URL for your GPU endpoint.
 
+### 2. Deploy the Frontend (Vercel)
+Import the repository into Vercel. During the setup process:
+1. Change the **Framework Preset** to `Next.js`
+2. Change the **Root Directory** to `frontend`
+3. Add an Environment Variable: `NEXT_PUBLIC_MODAL_BACKEND_URL` = `<YOUR_MODAL_URL_FROM_STEP_1>`
+
+### Alternatively: Run Frontend Locally
+```bash
+cd frontend
+npm install
+
+# Set the Modal backend URL
+echo "NEXT_PUBLIC_MODAL_BACKEND_URL=https://<YOUR_MODAL_URL>" > .env.local
+
+# Start the dev server
+npm run dev
+```
+
+## Acknowledgements
+* Fine-tuning powered by [Unsloth](https://github.com/unslothai/unsloth)
+* VLM architecture provided by [Qwen](https://github.com/QwenLM/Qwen2.5-VL)
