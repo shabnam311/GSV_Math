@@ -12,6 +12,11 @@ GSV-Math is a vision-language reasoning pipeline built to solve complex geometri
 * **Frontend UI:** Next.js + Tailwind CSS, hosted on [Vercel](https://vercel.com/)
 
 ## Results
+
+**Vision-Dependency Score (VDS)**
+To prevent the model from simply guessing answers based on textual patterns without looking at the diagram, we measure the Vision-Dependency Score (VDS).
+VDS = (Accuracy_Visual - Accuracy_Blind) / Accuracy_Visual
+A higher VDS indicates the model is genuinely using the image to solve the problem rather than hallucinating from the text prompt.
 The model was fine-tuned and evaluated against mathematical reasoning benchmarks. 
 
 | Metric | Accuracy |
@@ -77,3 +82,4 @@ npm run dev
 ## Acknowledgements
 * Fine-tuning powered by [Unsloth](https://github.com/unslothai/unsloth)
 * VLM architecture provided by [Qwen](https://github.com/QwenLM/Qwen2.5-VL)
+
