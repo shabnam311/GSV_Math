@@ -26,6 +26,7 @@ image = (
         "fastapi[standard]"
     )
     .run_commands("python -m spacy download en_core_web_sm")
+    .add_local_dir("backend/pipeline", remote_path="/root/pipeline")
 )
 
 # 3. Persistent Volume for Hugging Face weights to avoid re-downloading on cold starts
@@ -95,3 +96,4 @@ class GSVMathModel:
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "message": "Modal backend is reachable."}
+
