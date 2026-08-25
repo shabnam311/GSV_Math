@@ -50,5 +50,3 @@ Simply open \`frontend/index.html\` in your browser, or deploy to Vercel using t
 * **GPU Quota:** The live demo runs on Hugging Face ZeroGPU (free tier). You may occasionally hit a quota limit or experience cold-start delays (~1-2 minutes) if the Space is idle.
 * **OWL-ViT Generalization:** Open-vocabulary object detection works exceptionally well on concrete diagram features, but may struggle with purely abstract/symbolic mathematical annotations (e.g., highly stylized angle markers).
 
-## Documentation
-For a deep dive into the reasoning, architecture, and ablation studies, please refer to our [PROJECT_MASTER_PLAN.md](PROJECT_MASTER_PLAN.md).
