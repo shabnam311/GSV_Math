@@ -1,0 +1,14 @@
+gradio>=5.0.0
+spaces
+torch
+transformers
+unsloth
+unsloth_zoo
+trl
+peft
+bitsandbytes
+accelerate
+sympy
+spacy
+Pillow
+huggingface_hub
