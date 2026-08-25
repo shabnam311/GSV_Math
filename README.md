@@ -22,8 +22,8 @@ The model was fine-tuned and evaluated against mathematical reasoning benchmarks
 | Metric | Accuracy |
 |--------|----------|
 | Zero-shot Baseline | 16.30% |
-| **Fine-Tuned (Blind Test)** | **68.30%** |
-| Fine-Tuned (Holdout) | 94.00% |
+| **Fine-Tuned (Tested on Mathtestmini)** | **68.30%** |
+| Fine-Tuned (Tested on Math360k) | 94.00% |
 
 ## Live Demo
 The application features a custom, lightweight "paper worksheet" UI that interacts directly with the serverless GPU backend.
