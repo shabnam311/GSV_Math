@@ -60,14 +60,20 @@ class GSVMathModel:
         """
         try:
             image_b64 = data.get("image_base64")
+            image_url = data.get("image_url")
             question = data.get("question")
             
-            if not image_b64 or not question:
-                return {"error": "Missing image_base64 or question in payload"}
+            if not (image_b64 or image_url) or not question:
+                return {"error": "Missing image or question in payload"}
                 
-            # Decode the base64 image
-            image_bytes = base64.b64decode(image_b64)
-            img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            if image_url:
+                import urllib.request
+                req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req) as resp:
+                    img = Image.open(io.BytesIO(resp.read())).convert("RGB")
+            else:
+                image_bytes = base64.b64decode(image_b64)
+                img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
             
             # VRAM protection limit
             if max(img.size) > 768:
@@ -96,4 +102,6 @@ class GSVMathModel:
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "message": "Modal backend is reachable."}
+
+
 
