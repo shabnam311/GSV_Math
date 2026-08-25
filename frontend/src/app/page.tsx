@@ -1,206 +1,276 @@
-"use client";
+﻿"use client";
 
-import { useState, useRef } from "react";
-import { Upload, Image as ImageIcon, Send, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useState, useRef, DragEvent, ChangeEvent } from "react";
+
+const SAMPLES = {
+  triangle: {
+    question: "What is the area of the triangle, in square units?",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
+        <polygon points="60,240 340,240 200,40" fill="none" stroke="#111" stroke-width="2.5"/>
+        <text x="185" y="270" font-family="monospace" font-size="15" fill="#111">base = 280</text>
+        <text x="205" y="140" font-family="monospace" font-size="15" fill="#111">h = 200</text>
+      </svg>`
+  },
+  bars: {
+    question: "Which category has the highest value?",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
+        <rect x="40" y="180" width="50" height="90" fill="#333"/>
+        <rect x="130" y="120" width="50" height="150" fill="#333"/>
+        <rect x="220" y="60" width="50" height="210" fill="#c9a24a"/>
+        <rect x="310" y="150" width="50" height="120" fill="#333"/>
+        <line x1="20" y1="270" x2="380" y2="270" stroke="#111" stroke-width="1.5"/>
+        <text x="45" y="290" font-family="monospace" font-size="13" fill="#111">A</text>
+        <text x="135" y="290" font-family="monospace" font-size="13" fill="#111">B</text>
+        <text x="225" y="290" font-family="monospace" font-size="13" fill="#111">C</text>
+        <text x="315" y="290" font-family="monospace" font-size="13" fill="#111">D</text>
+      </svg>`
+  },
+  angles: {
+    question: "If the two angles are supplementary and one is 65°, what is the other?",
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
+        <line x1="20" y1="200" x2="380" y2="200" stroke="#111" stroke-width="2.5"/>
+        <line x1="200" y1="200" x2="120" y2="60" stroke="#111" stroke-width="2.5"/>
+        <text x="140" y="180" font-family="monospace" font-size="15" fill="#111">65°</text>
+        <text x="230" y="180" font-family="monospace" font-size="15" fill="#111">?</text>
+      </svg>`
+  }
+};
+
+function svgToBase64Png(svgString: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const blob = new Blob([svgString], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
+    img.onload = function () {
+      const canvas = document.createElement("canvas");
+      canvas.width = 400;
+      canvas.height = 300;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, 400, 300);
+        ctx.drawImage(img, 0, 0);
+      }
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.src = url;
+  });
+}
 
 export default function Home() {
-  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<"idle" | "running" | "done" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState<any>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const backendUrl = process.env.NEXT_PUBLIC_MODAL_BACKEND_URL;
+  const notConfigured = !backendUrl;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImage = (dataUrl: string) => {
+    setImagePreview(dataUrl);
+    setImageBase64(dataUrl.split(",")[1]);
+  };
+
+  const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
     if (file.size > 10 * 1024 * 1024) {
-      setError("Image must be smaller than 10MB");
+      alert("File too large — 10MB max.");
       return;
     }
-
-    setImageFile(file);
-    setError(null);
-    setResult(null);
-    
     const reader = new FileReader();
-    reader.onload = (e) => {
-      setImagePreview(e.target?.result as string);
-    };
+    reader.onload = (ev) => handleImage(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
-    if (!imagePreview || !question.trim()) {
-      setError("Please provide both an image and a question.");
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => handleImage(ev.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const loadSample = async (key: keyof typeof SAMPLES) => {
+    const s = SAMPLES[key];
+    const dataUrl = await svgToBase64Png(s.svg);
+    handleImage(dataUrl);
+    setQuestion(s.question);
+  };
+
+  const handleSolve = async () => {
+    if (!imageBase64) { alert("Upload or pick a sample image first."); return; }
+    if (!question.trim()) { alert("Enter a question."); return; }
+    if (notConfigured) {
+      setStatus("error");
+      setErrorMsg("No backend endpoint set. Please configure NEXT_PUBLIC_MODAL_BACKEND_URL.");
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setStatus("running");
     setResult(null);
+    setErrorMsg("");
 
     try {
-      const base64Data = imagePreview.split(',')[1];
-      const backendUrl = process.env.NEXT_PUBLIC_MODAL_BACKEND_URL;
-      
-      if (!backendUrl) {
-        throw new Error("Backend URL is not configured. Please set NEXT_PUBLIC_MODAL_BACKEND_URL.");
-      }
-
-      const res = await fetch(backendUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          image_base64: base64Data, 
-          question: question.trim() 
-        }),
+      const resp = await fetch(backendUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          image_base64: imageBase64,
+          question: question.trim(),
+        })
       });
 
-      if (!res.ok) {
-        throw new Error(`Server returned ${res.status}`);
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(`Server responded ${resp.status}: ${text.slice(0, 200)}`);
       }
-
-      const data = await res.json();
       
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
+      const data = await resp.json();
+      if (data.error) throw new Error(data.error);
+      
       setResult(data);
+      setStatus("done");
     } catch (err: any) {
-      setError(err.message || "An error occurred connecting to the backend.");
-    } finally {
-      setLoading(false);
+      setStatus("error");
+      setErrorMsg(err.message || String(err));
+    }
+  };
+
+  const renderResultContent = () => {
+    if (status === "idle") {
+      return <div className="placeholder">Results will appear here once you submit an image and a question.</div>;
+    }
+    
+    if (status === "running") {
+      return (
+        <div className="loading">
+          <div className="spinner"></div>
+          <span>generating and verifying (may take ~60s on cold start)</span>
+        </div>
+      );
+    }
+    
+    if (status === "error") {
+      return <div className="error">{errorMsg}</div>;
+    }
+    
+    if (result) {
+      const answer = result.answer ?? "—";
+      const reasoning = result.reasoning ?? "";
+      const votes = result.vote_distribution || {};
+      const maxVote = Math.max(1, ...Object.values(votes) as number[]);
+      
+      return (
+        <>
+          <div className="answer-row">
+            <span className="answer-value">{answer}</span>
+            <span className="answer-tag">answer</span>
+          </div>
+          
+          {reasoning && <div className="reasoning">{reasoning}</div>}
+          
+          {Object.keys(votes).length > 0 && (
+            <div className="votes">
+              {Object.entries(votes).sort((a: any, b: any) => b[1] - a[1]).map(([k, v]: [string, any]) => (
+                <div className="vote-row" key={k}>
+                  <span className="vote-key">{k}</span>
+                  <div className="vote-track">
+                    <div className="vote-fill" style={{ width: `${(v / maxVote * 100).toFixed(0)}%` }}></div>
+                  </div>
+                  <span className="vote-val">{Number(v).toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      );
     }
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 font-sans pb-20">
-      {/* Hero Section */}
-      <div className="bg-indigo-600 text-white py-16 px-4 text-center shadow-lg">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 flex items-center justify-center gap-3">
-          <span className="text-4xl">??</span> GSV-Math
-        </h1>
-        <p className="text-xl md:text-2xl font-light text-indigo-100 max-w-2xl mx-auto">
-          Grounded Self-Verifying Math VQA
-        </p>
-      </div>
+    <div className="shell">
+      <header>
+        <div className="brand">GSV<span>·</span>Math</div>
+        <nav>
+          <a href="https://github.com/shabnam311/GSV_Math" target="_blank" rel="noopener noreferrer">source</a>
+        </nav>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-4 mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Input Panel */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-indigo-500" /> Upload Diagram
-          </h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${imagePreview ? 'border-indigo-300 bg-indigo-50' : 'border-slate-300 hover:border-indigo-400 bg-slate-50'}`}
-            >
-              {imagePreview ? (
-                <img src={imagePreview} alt="Preview" className="mx-auto max-h-48 object-contain rounded-lg shadow-sm" />
-              ) : (
-                <div className="flex flex-col items-center text-slate-500">
-                  <Upload className="w-10 h-10 mb-3 text-slate-400" />
-                  <p className="font-medium">Click to upload image</p>
-                  <p className="text-sm mt-1">JPEG, PNG up to 10MB</p>
-                </div>
-              )}
-              <input type="file" ref={fileInputRef} className="hidden" accept="image/jpeg, image/png, image/webp" onChange={handleImageChange} />
-            </div>
+      <div className="ui-grid">
+        <section className="panel">
+          <div className="panel-label">Input</div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Question</label>
-              <textarea 
-                value={question}
-                onChange={(e) => setQuestion(e.target.value)}
-                placeholder="What is the value of x in the diagram?"
-                className="w-full rounded-xl border border-slate-300 p-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 min-h-[100px] outline-none transition-all resize-none"
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={loading || !imageFile || !question.trim()}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-4 px-6 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-              {loading ? 'Solving (First run may take 60s+ to wake server)...' : 'Solve'}
-            </button>
-            
-            {error && (
-              <div className="bg-red-50 text-red-700 p-4 rounded-xl flex items-start gap-3 border border-red-100">
-                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                <p className="text-sm">{error}</p>
+          <div 
+            className={`dropzone ${isDragging ? "drag" : ""}`}
+            onClick={() => fileInputRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+            onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
+            onDrop={onDrop}
+            tabIndex={0}
+            role="button"
+            aria-label="Upload an image"
+          >
+            <input type="file" ref={fileInputRef} accept="image/*" onChange={onFileChange} />
+            {imagePreview ? (
+              <img src={imagePreview} alt="Uploaded diagram" />
+            ) : (
+              <div id="dzContent">
+                <div className="dz-mark">+</div>
+                <div className="dz-title">Upload an image</div>
+                <div className="dz-sub">PNG or JPG, up to 10MB</div>
               </div>
             )}
-          </form>
-        </div>
+          </div>
 
-        {/* Results Panel */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-          <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500" /> Results
-          </h2>
+          <div className="samples">
+            <button className="chip" onClick={() => loadSample("triangle")}>triangle</button>
+            <button className="chip" onClick={() => loadSample("bars")}>bar chart</button>
+            <button className="chip" onClick={() => loadSample("angles")}>angles</button>
+          </div>
 
-          {!result && !loading && (
-            <div className="h-[400px] flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-100 rounded-xl">
-              <p>Submit a question to see the results here.</p>
-            </div>
-          )}
+          <div className="field">
+            <label className="field-label" htmlFor="question">Question</label>
+            <textarea 
+              id="question" 
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              placeholder="What is the area of the shaded region?"
+            />
+          </div>
 
-          {loading && (
-            <div className="h-[400px] flex flex-col items-center justify-center text-indigo-500 space-y-4">
-              <Loader2 className="w-10 h-10 animate-spin" />
-              <p className="font-medium animate-pulse">Running CISC Voting...</p>
-            </div>
-          )}
+          <button 
+            className="solve" 
+            onClick={handleSolve}
+            disabled={status === "running"}
+          >
+            Run
+          </button>
+          <div className="endpoint-note">
+            {notConfigured ? "endpoint not configured" : backendUrl.replace(/^https?:\/\//, '')}
+          </div>
+        </section>
 
-          {result && (
-            <div className="space-y-6">
-              <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-xl">
-                <h3 className="text-sm font-semibold text-emerald-800 uppercase tracking-wider mb-2">Final Answer</h3>
-                <p className="text-2xl font-bold text-emerald-950">{result.answer}</p>
-              </div>
-
-              <div>
-                <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Reasoning Trace</h3>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-slate-700 text-sm whitespace-pre-wrap font-mono h-48 overflow-y-auto">
-                  {result.reasoning}
-                </div>
-              </div>
-
-              {result.vote_distribution && (
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-3">Vote Distribution</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(result.vote_distribution).map(([ans, count]: [string, any]) => (
-                      <div key={ans} className="bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 text-sm">
-                        <span className="font-semibold text-slate-700">{ans}:</span> <span className="text-slate-500">{count} votes</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {result.note && (
-                <p className="text-xs text-slate-400 text-center mt-4">{result.note}</p>
-              )}
-            </div>
-          )}
-        </div>
+        <section className="panel">
+          <div className="panel-label">Output</div>
+          <div id="resultArea">
+            {renderResultContent()}
+          </div>
+        </section>
       </div>
-      
-      <footer className="max-w-4xl mx-auto mt-12 text-center text-slate-400 text-sm pb-8">
-        <p>Built with Next.js, Modal, and Qwen2.5-VL.</p>
+
+      <footer>
+        <span>Qwen2.5-VL · OWL-ViT · MathVista</span>
+        <span>{status}</span>
       </footer>
-    </main>
+    </div>
   );
 }
