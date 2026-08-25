@@ -60,6 +60,7 @@ function svgToBase64Png(svgString: string): Promise<string> {
 
 export default function Home() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState<"idle" | "running" | "graded" | "error">("idle");
@@ -126,6 +127,7 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           image_base64: imageBase64,
+          image_url: imageUrl || null,
           question: question.trim(),
           num_samples: parseInt(numSamples, 10)
         })
@@ -316,3 +318,6 @@ export default function Home() {
     </>
   );
 }
+
+
+
