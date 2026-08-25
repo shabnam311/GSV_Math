@@ -28,7 +28,7 @@ The model was fine-tuned and evaluated against mathematical reasoning benchmarks
 ## Live Demo
 The application features a custom, lightweight "paper worksheet" UI that interacts directly with the serverless GPU backend.
 
-- **Frontend:** [gsv-math.vercel.app](https://gsv-math-git-main-shabnam311s-projects.vercel.app) *(or your primary Vercel domain)*
+- **Frontend:** [gsv-math.vercel.app](https://gsv-math-git-main-shabnam311s-projects.vercel.app) 
 - **Backend:** Hosted serverlessly on Modal.
 
 ## Project Structure
