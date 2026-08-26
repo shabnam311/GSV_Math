@@ -68,6 +68,7 @@ export default function Home() {
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [clipScore, setClipScore] = useState<number | null>(null);
+  const [owlScore, setOwlScore] = useState<number | null>(null);
   const [sympyPassed, setSympyPassed] = useState<boolean | null>(null);
   const [numSamples, setNumSamples] = useState("3");
   
@@ -320,6 +321,7 @@ export default function Home() {
     </>
   );
 }
+
 
 
 

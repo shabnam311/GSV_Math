@@ -3,6 +3,7 @@ import gc
 from collections import Counter, defaultdict
 from .clip_alignment import clip_alignment_score
 from .symbolic_check import verify_equations
+from .owl_grounding import owl_grounding_score
 
 def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
     messages = [
@@ -37,6 +38,9 @@ def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
         else:
             extracted_ans = output_text.split()[-1].strip(".")
             
+        # Module 1: OWL-ViT Object Grounding
+        owl_score = owl_grounding_score(image, output_text)
+
         # Module 2: CLIP Semantic Alignment
         clip_score = clip_alignment_score(image, output_text)
         
@@ -44,9 +48,7 @@ def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
         sympy_passed = verify_equations(output_text)
         
         # Combine confidence
-        # Baseline confidence is 1.0 (since OWL-ViT isn't fully wired in the deployed Modal yet)
-        # We blend it with CLIP: 0.5 * 1.0 + 0.5 * clip_score
-        confidence = 0.5 + (0.5 * clip_score)
+        confidence = (0.5 * owl_score) + (0.5 * clip_score)
         
         # Penalty for failed symbolic check
         if sympy_passed is False:
@@ -57,6 +59,7 @@ def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
         samples.append({
             "trace": output_text,
             "answer": extracted_ans,
+            "owl_score": owl_score,
             "clip_score": clip_score,
             "sympy_passed": sympy_passed,
             "final_confidence": confidence
@@ -69,5 +72,4 @@ def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
     best_answer = max(answer_votes, key=answer_votes.get)
     best_sample = next((s for s in samples if s["answer"] == best_answer), samples[0])
     
-    # We return the best trace, the vote dict, and the new module signals
-    return best_answer, best_sample["trace"], dict(answer_votes), best_sample["clip_score"], best_sample["sympy_passed"]
+    return best_answer, best_sample["trace"], dict(answer_votes), best_sample["clip_score"], best_sample["sympy_passed"], best_sample["owl_score"]
