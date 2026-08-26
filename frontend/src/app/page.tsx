@@ -67,6 +67,8 @@ export default function Home() {
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [clipScore, setClipScore] = useState<number | null>(null);
+  const [sympyPassed, setSympyPassed] = useState<boolean | null>(null);
   const [numSamples, setNumSamples] = useState("3");
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -318,6 +320,7 @@ export default function Home() {
     </>
   );
 }
+
 
 
 

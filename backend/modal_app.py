@@ -82,7 +82,7 @@ class GSVMathModel:
             from pipeline.cisc import cisc_generate_and_vote
             
             # Run the voting loop (k=3 to balance accuracy vs Modal credits)
-            best_answer, best_trace, vote_dist = cisc_generate_and_vote(
+            best_answer, best_trace, vote_dist, clip_score, sympy_passed = cisc_generate_and_vote(
                 self.model, self.processor, img, question, num_samples=3
             )
             
@@ -90,6 +90,8 @@ class GSVMathModel:
                 "answer": best_answer, 
                 "reasoning": best_trace, 
                 "vote_distribution": vote_dist,
+                "clip_alignment_score": clip_score,
+                "symbolic_check_passed": sympy_passed,
                 "note": "Research demo, not a certified math solver - verify answers independently."
             }
             
@@ -102,6 +104,7 @@ class GSVMathModel:
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "message": "Modal backend is reachable."}
+
 
 
 
