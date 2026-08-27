@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 import { useState, useRef } from "react";
 
 const SAMPLES = {
@@ -104,7 +104,7 @@ export default function Home() {
 
       if (!resp.ok) {
         const text = await resp.text();
-        throw new Error(Server responded : );
+        throw new Error(`Server responded ${resp.status}: ${text.slice(0, 200)}`);
       }
       
       const data = await resp.json();
@@ -177,7 +177,7 @@ export default function Home() {
                   <div className="vote-row" key={k}>
                     <span className="vote-key">{k}</span>
                     <div className="vote-track">
-                      <div className="vote-fill" style={{ width: ${((v as number) / maxVote * 100).toFixed(0)}% }}></div>
+                      <div className="vote-fill" style={{ width: `${((v as number) / maxVote * 100).toFixed(0)}%` }}></div>
                     </div>
                     <span className="vote-val">{Number(v as number).toFixed(2)}</span>
                   </div>
@@ -339,3 +339,4 @@ export default function Home() {
     </>
   );
 }
+
