@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useRef, DragEvent, ChangeEvent } from "react";
 
@@ -214,6 +214,54 @@ export default function Home() {
                 ))}
               </div>
             </>
+          )}
+
+          {/* Signal Breakdown */}
+          {((typeof result.clip_alignment_score === "number") || (typeof result.symbolic_check_passed === "boolean") || (typeof result.owl_grounding_score === "number")) && (
+            <div className="mt-8 border-t border-[var(--paper-line-soft)] pt-6 pb-4">
+              <div className="votes-label" style={{marginBottom: "1rem"}}>Signal Breakdown</div>
+              <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                  <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>OWL-ViT Object Grounding</span>
+                  {typeof result.owl_grounding_score === "number" ? (
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>
+                      {(result.owl_grounding_score * 100).toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>ACTIVE</span>
+                  )}
+                </div>
+                {typeof result.clip_alignment_score === "number" && (
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                    <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>CLIP Semantic Alignment</span>
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>
+                      {(result.clip_alignment_score * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+                {typeof result.symbolic_check_passed === "boolean" && (
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                    <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>Sympy Symbolic Check</span>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", 
+                      fontSize: "0.75rem", 
+                      padding: "4px 8px", 
+                      borderRadius: "4px",
+                      backgroundColor: result.symbolic_check_passed ? '#d1e7dd' : '#f8d7da',
+                      color: result.symbolic_check_passed ? '#0f5132' : '#842029'
+                    }}>
+                      {result.symbolic_check_passed ? 'PASSED' : 'FAILED'}
+                    </span>
+                  </div>
+                )}
+                {typeof result.symbolic_check_passed !== "boolean" && (
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                    <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>Sympy Symbolic Check</span>
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>N/A</span>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </>
       );
