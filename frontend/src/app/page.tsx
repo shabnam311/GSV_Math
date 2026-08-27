@@ -1,100 +1,66 @@
 ﻿"use client";
-
-import { useState, useRef, DragEvent, ChangeEvent } from "react";
+import { useState, useRef } from "react";
 
 const SAMPLES = {
   triangle: {
-    question: "What is the area of the triangle, in square units?",
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
-        <polygon points="60,240 340,240 200,40" fill="none" stroke="#1f2430" stroke-width="2.5"/>
-        <text x="185" y="270" font-family="monospace" font-size="15" fill="#1f2430">base = 280</text>
-        <text x="205" y="140" font-family="monospace" font-size="15" fill="#1f2430">h = 200</text>
-      </svg>`
+    question: "Find the area of the triangle with base 10 and height 5.",
+    svg: <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><polygon points="10,90 90,90 50,10" fill="none" stroke="black" stroke-width="2"/><text x="40" y="95">10</text><line x1="50" y1="10" x2="50" y2="90" stroke="black" stroke-dasharray="2,2"/><text x="55" y="55">5</text></svg>
   },
   bars: {
-    question: "Which category has the highest value?",
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
-        <rect x="40" y="180" width="50" height="90" fill="#3a5f7d"/>
-        <rect x="130" y="120" width="50" height="150" fill="#3a5f7d"/>
-        <rect x="220" y="60" width="50" height="210" fill="#a3372a"/>
-        <rect x="310" y="150" width="50" height="120" fill="#3a5f7d"/>
-        <line x1="20" y1="270" x2="380" y2="270" stroke="#1f2430" stroke-width="1.5"/>
-        <text x="45" y="290" font-family="monospace" font-size="13" fill="#1f2430">A</text>
-        <text x="135" y="290" font-family="monospace" font-size="13" fill="#1f2430">B</text>
-        <text x="225" y="290" font-family="monospace" font-size="13" fill="#1f2430">C</text>
-        <text x="315" y="290" font-family="monospace" font-size="13" fill="#1f2430">D</text>
-      </svg>`
+    question: "What is the difference between group A and group B?",
+    svg: <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><line x1="10" y1="90" x2="90" y2="90" stroke="black"/><rect x="20" y="30" width="20" height="60" fill="#333"/><text x="30" y="25" text-anchor="middle">A</text><rect x="60" y="50" width="20" height="40" fill="#777"/><text x="70" y="45" text-anchor="middle">B</text></svg>
   },
   angles: {
     question: "If the two angles are supplementary and one is 65°, what is the other?",
-    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
-        <line x1="20" y1="200" x2="380" y2="200" stroke="#1f2430" stroke-width="2.5"/>
-        <line x1="200" y1="200" x2="120" y2="60" stroke="#1f2430" stroke-width="2.5"/>
-        <text x="140" y="180" font-family="monospace" font-size="15" fill="#1f2430">65°</text>
-        <text x="230" y="180" font-family="monospace" font-size="15" fill="#1f2430">?</text>
-      </svg>`
+    svg: <svg viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg"><line x1="20" y1="80" x2="180" y2="80" stroke="black" stroke-width="2"/><line x1="90" y1="80" x2="60" y2="20" stroke="black" stroke-width="2"/><text x="65" y="75" font-size="12">65°</text><text x="110" y="75" font-size="12">?</text></svg>
   }
 };
 
-function svgToBase64Png(svgString: string): Promise<string> {
+const svgToBase64Png = async (svgStr: string): Promise<string> => {
   return new Promise((resolve) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = 400; canvas.height = 400;
+    const ctx = canvas.getContext("2d");
     const img = new Image();
-    const blob = new Blob([svgString], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    img.onload = function () {
-      const canvas = document.createElement("canvas");
-      canvas.width = 400;
-      canvas.height = 300;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, 400, 300);
-        ctx.drawImage(img, 0, 0);
-      }
-      URL.revokeObjectURL(url);
+    img.onload = () => {
+      ctx?.drawImage(img, 0, 0, 400, 400);
       resolve(canvas.toDataURL("image/png"));
     };
-    img.src = url;
+    img.src = "data:image/svg+xml;base64," + btoa(svgStr);
   });
-}
+};
 
 export default function Home() {
-  const [imageBase64, setImageBase64] = useState<string | null>(null);
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [imagePreview, setImagePreview] = useState("");
   const [question, setQuestion] = useState("");
   const [status, setStatus] = useState<"idle" | "running" | "graded" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [result, setResult] = useState<Record<string, unknown> | null>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [clipScore, setClipScore] = useState<number | null>(null);
-  const [owlScore, setOwlScore] = useState<number | null>(null);
-  const [sympyPassed, setSympyPassed] = useState<boolean | null>(null);
   const [numSamples, setNumSamples] = useState("3");
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  const backendUrl = process.env.NEXT_PUBLIC_MODAL_BACKEND_URL;
+
+  const backendUrl = process.env.NEXT_PUBLIC_MODAL_BACKEND_URL || "";
   const notConfigured = !backendUrl;
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleImage = (dataUrl: string) => {
     setImagePreview(dataUrl);
     setImageBase64(dataUrl.split(",")[1]);
+    setImageUrl("");
   };
 
-  const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      alert("File too large — 10MB max.");
-      return;
-    }
     const reader = new FileReader();
     reader.onload = (ev) => handleImage(ev.target?.result as string);
     reader.readAsDataURL(file);
   };
 
-  const onDrop = (e: DragEvent<HTMLDivElement>) => {
+  const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
@@ -138,7 +104,7 @@ export default function Home() {
 
       if (!resp.ok) {
         const text = await resp.text();
-        throw new Error(`Server responded ${resp.status}: ${text.slice(0, 200)}`);
+        throw new Error(Server responded : );
       }
       
       const data = await resp.json();
@@ -154,7 +120,7 @@ export default function Home() {
 
   const renderResultContent = () => {
     if (status === "idle") {
-      return <div className="placeholder">Nothing graded yet — upload a diagram and ask a question above.</div>;
+      return <div className="placeholder">Nothing graded yet - upload a diagram and ask a question above.</div>;
     }
     
     if (status === "running") {
@@ -171,11 +137,15 @@ export default function Home() {
     }
     
     if (result) {
-      const answer = result.answer ?? "—";
+      const answer = result.answer ?? "-";
       const reasoning = result.reasoning as string | undefined;
       const grounding = typeof result.grounding_confidence === "number" ? result.grounding_confidence : null;
       const votes = (result.vote_distribution as Record<string, unknown>) || {};
       const maxVote = Math.max(1, ...Object.values(votes).map(v => v as number));
+      
+      const clipScore = typeof result.clip_alignment_score === "number" ? result.clip_alignment_score : null;
+      const owlScore = typeof result.owl_grounding_score === "number" ? result.owl_grounding_score : null;
+      const sympyPassed = typeof result.symbolic_check_passed === "boolean" ? result.symbolic_check_passed : null;
       
       return (
         <>
@@ -207,13 +177,61 @@ export default function Home() {
                   <div className="vote-row" key={k}>
                     <span className="vote-key">{k}</span>
                     <div className="vote-track">
-                      <div className="vote-fill" style={{ width: `${((v as number) / maxVote * 100).toFixed(0)}%` }}></div>
+                      <div className="vote-fill" style={{ width: ${((v as number) / maxVote * 100).toFixed(0)}% }}></div>
                     </div>
                     <span className="vote-val">{Number(v as number).toFixed(2)}</span>
                   </div>
                 ))}
               </div>
             </>
+          )}
+
+          {/* Signal Breakdown */}
+          {(clipScore !== null || sympyPassed !== null || owlScore !== null) && (
+            <div className="mt-8 border-t border-[var(--paper-line-soft)] pt-6 pb-4">
+              <div className="votes-label" style={{marginBottom: "1rem"}}>Signal Breakdown</div>
+              <div style={{display: "flex", flexDirection: "column", gap: "12px"}}>
+                <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                  <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>OWL-ViT Object Grounding</span>
+                  {owlScore !== null ? (
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>
+                      {(owlScore * 100).toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>ACTIVE</span>
+                  )}
+                </div>
+                {clipScore !== null && (
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                    <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>CLIP Semantic Alignment</span>
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>
+                      {(clipScore * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                )}
+                {sympyPassed !== null && (
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                    <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>Sympy Symbolic Check</span>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", 
+                      fontSize: "0.75rem", 
+                      padding: "4px 8px", 
+                      borderRadius: "4px",
+                      backgroundColor: sympyPassed ? '#d1e7dd' : '#f8d7da',
+                      color: sympyPassed ? '#0f5132' : '#842029'
+                    }}>
+                      {sympyPassed ? 'PASSED' : 'FAILED'}
+                    </span>
+                  </div>
+                )}
+                {sympyPassed === null && (
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                    <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)"}}>Sympy Symbolic Check</span>
+                    <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>N/A</span>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </>
       );
@@ -227,7 +245,7 @@ export default function Home() {
           <span className="mark-glyph">gsv</span>
           <span className="mark-name">math verification</span>
         </div>
-        <div className="links"><a href="https://github.com/shabnam311/GSV_Math" target="_blank" rel="noopener noreferrer">source →</a></div>
+        <div className="links"><a href="https://github.com/shabnam311/GSV_Math" target="_blank" rel="noopener noreferrer">source  </a></div>
       </header>
 
       <div className="intro">
@@ -244,7 +262,7 @@ export default function Home() {
               <div className="field-label"><span className="n">1</span>diagram</div>
               
               <div 
-                className={`dropzone ${isDragging ? "drag" : ""}`}
+                className={dropzone }
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
                 onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }}
@@ -259,13 +277,13 @@ export default function Home() {
                 ) : (
                   <div id="dzContent">
                     <div className="dz-title">click or drop an image</div>
-                    <div className="dz-sub">PNG / JPG · UP TO 10MB</div>
+                    <div className="dz-sub">PNG / JPG - UP TO 10MB</div>
                   </div>
                 )}
               </div>
 
               <div className="samples">
-                <div className="row-label">or try one —</div>
+                <div className="row-label">or try one -</div>
                 <div className="chip-row">
                   <button className="chip" onClick={() => loadSample("triangle")}>triangle</button>
                   <button className="chip" onClick={() => loadSample("bars")}>bar chart</button>
@@ -315,15 +333,9 @@ export default function Home() {
       </main>
 
       <footer>
-        <span>Qwen2.5-VL-7B · OWL-ViT grounding · MathVista testmini</span>
+        <span>Qwen2.5-VL-7B - OWL-ViT grounding - MathVista testmini</span>
         <span>{status}</span>
       </footer>
     </>
   );
 }
-
-
-
-
-
-
