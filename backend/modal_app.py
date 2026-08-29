@@ -46,7 +46,7 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
     ],
     timeout=300, # 5 min max per request
     scaledown_window=120, # scale to 0 after 2 mins idle
-    concurrency_limit=5, # Limit concurrent containers to prevent cost exhaustion
+    max_containers=5, # Limit concurrent containers to prevent cost exhaustion
 )
 class GSVMathModel:
     @modal.enter()
@@ -158,4 +158,5 @@ class GSVMathModel:
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "message": "Modal backend is reachable."}
+
 
