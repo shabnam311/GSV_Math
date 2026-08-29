@@ -1,4 +1,4 @@
-﻿# GSV-Math: Grounded Self-Verifying Math VQA
+# GSV-Math: Grounded Self-Verifying Math VQA
 
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshabnam311%2FGSV_Math)
 
@@ -34,13 +34,14 @@ The application features a custom, lightweight "paper worksheet" UI that interac
 ## Project Structure
 ```text
 GSV_Math/
-├── backend/            # Modal serverless GPU backend (FastAPI)
-│   ├── modal_app.py    # Endpoint definitions and Model loading
-│   └── pipeline/       # CISC voting, prompt formatting, model inference
-├── frontend/           # Next.js React web application
-│   ├── src/app/        # Page routing, React components, and CSS
-│   └── package.json
-└── project_notebooks/  # Training, fine-tuning, and evaluation scripts (Unsloth)
+├─ backend/            # Modal serverless GPU backend (FastAPI)
+│  ├─ modal_app.py    # Endpoint definitions and Model loading
+│  └─ pipeline/       # CISC voting, prompt formatting, model inference
+├─ frontend/           # Next.js React web application
+│  ├─ src/app/        # Page routing, React components, and CSS
+│  └─ package.json
+├─ project_notebooks/  # Training, fine-tuning, and evaluation scripts (Unsloth)
+└─ legacy/             # Original LLaVA baseline (superseded, kept for reference)
 ```
 
 ## Deployment / Running Locally

@@ -1,9 +1,10 @@
-﻿import torch
+import torch
 import gc
 from collections import Counter, defaultdict
 from .clip_alignment import clip_alignment_score
 from .symbolic_check import verify_equations
 from .owl_grounding import owl_grounding_score
+from .answer_extraction import extract_answer, normalize_answer
 
 def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
     messages = [
@@ -32,11 +33,9 @@ def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
         
         output_text = processor.batch_decode(outputs, skip_special_tokens=True)[0]
         
-        ans_start = output_text.lower().rfind("answer is")
-        if ans_start != -1:
-            extracted_ans = output_text[ans_start + 9:].strip().strip(".")
-        else:
-            extracted_ans = output_text.split()[-1].strip(".")
+        # New robust extraction
+        extracted_raw = extract_answer(output_text)
+        extracted_ans = normalize_answer(extracted_raw)
             
         # Module 1: OWL-ViT Object Grounding
         owl_score = owl_grounding_score(image, output_text)

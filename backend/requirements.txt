@@ -1,5 +1,3 @@
-gradio>=5.0.0
-spaces
 torch
 transformers
 unsloth
@@ -12,5 +10,4 @@ sympy
 spacy
 Pillow
 huggingface_hub
-
 modal

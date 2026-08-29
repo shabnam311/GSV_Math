@@ -1,0 +1,27 @@
+name: Smoke Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests pillow
+
+      # Note: We run the smoke test against the live Modal API to verify the contract is intact.
+      # If this is too flaky, we should mock the endpoint.
+      - name: Run E2E Smoke Test
+        run: python scripts/e2e_test.py

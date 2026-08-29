@@ -4,8 +4,7 @@ import requests
 from PIL import Image, ImageDraw
 import io
 
-# Point 33: Smoke test for local API or Space API
-API_URL = "http://127.0.0.1:7860/predict"
+API_URL = "https://shabnam311--gsv-math-backend-gsvmathmodel-solve.modal.run"
 
 def create_test_image():
     img = Image.new('RGB', (100, 100), color='white')
@@ -16,14 +15,14 @@ def create_test_image():
     return base64.b64encode(buf.getvalue()).decode('utf-8')
 
 def test_api():
-    print("Running smoke test...")
+    print("Running smoke test against Modal endpoint...")
     payload = {
-        "image": create_test_image(),
+        "image_base64": create_test_image(),
         "question": "What is in the image?",
         "num_samples": 1
     }
     try:
-        resp = requests.post(API_URL, json=payload)
+        resp = requests.post(API_URL, json=payload, headers={"Content-Type": "application/json"})
         print("Status Code:", resp.status_code)
         print("Response:", json.dumps(resp.json(), indent=2))
     except Exception as e:

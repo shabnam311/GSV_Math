@@ -7,3 +7,6 @@ __pycache__/
 !next.config.js
 
 PROJECT_MASTER_PLAN.md
+
+# Generated output files
+out.json
