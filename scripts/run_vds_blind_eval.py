@@ -2,6 +2,22 @@ import json
 import os
 import sys
 
+def normalize_answer(ans: str) -> str:
+    if not ans: return ""
+    ans = ans.strip().lower()
+    prefixes = ["x=", "y=", "z=", "v=", "a=", "b=", "c="]
+    for p in prefixes:
+        if ans.startswith(p):
+            ans = ans[len(p):].strip()
+    try:
+        f = float(ans)
+        if f.is_integer(): return str(int(f))
+        return str(f)
+    except ValueError:
+        pass
+    return ans
+
+
 def mcnemar_test(b, c):
     """
     Computes McNemar's test for paired nominal data.
@@ -42,9 +58,9 @@ def run_vds_evaluation(with_image_results_file, blind_results_file):
     img_wrong_blind_right = 0 # 'b' in McNemar
     
     for pid in common_pids:
-        img_ans = str(with_img_dict[pid].get("cisc_final_answer", "")).lower()
-        blind_ans = str(blind_dict[pid].get("cisc_final_answer", "")).lower()
-        gt = str(with_img_dict[pid].get("ground_truth", "")).lower()
+        img_ans = normalize_answer(str(with_img_dict[pid].get("cisc_final_answer", "")))
+        blind_ans = normalize_answer(str(blind_dict[pid].get("cisc_final_answer", "")))
+        gt = normalize_answer(str(with_img_dict[pid].get("ground_truth", "")))
         
         img_correct = (img_ans == gt)
         blind_correct = (blind_ans == gt)
@@ -86,3 +102,4 @@ if __name__ == '__main__':
     print("python scripts/run_vds_blind_eval.py <with_image.jsonl> <blind.jsonl>")
     if len(sys.argv) == 3:
         run_vds_evaluation(sys.argv[1], sys.argv[2])
+

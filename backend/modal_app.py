@@ -42,7 +42,7 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
     volumes={"/root/.cache/huggingface": hf_cache_vol},
     secrets=[
         modal.Secret.from_name("huggingface-secret"),
-        modal.Secret.from_dict({"API_KEY": "dev-secret-key"}) # Placeholder for actual Modal Secret
+        modal.Secret.from_name("api-key") # User must create this via: modal secret create api-key API_KEY=...
     ],
     timeout=300, # 5 min max per request
     scaledown_window=120, # scale to 0 after 2 mins idle
@@ -158,3 +158,4 @@ class GSVMathModel:
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "message": "Modal backend is reachable."}
+
