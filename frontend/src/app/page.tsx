@@ -125,9 +125,13 @@ export default function Home() {
     setErrorMsg("");
 
     try {
+      const apiKey = process.env.NEXT_PUBLIC_API_KEY || "dev-secret-key";
       const resp = await fetch(backendUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey
+        },
         body: JSON.stringify({
           image_base64: imageBase64,
           image_url: imageUrl || null,

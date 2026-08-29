@@ -40,7 +40,10 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
     image=image,
     gpu="T4",
     volumes={"/root/.cache/huggingface": hf_cache_vol},
-    secrets=[modal.Secret.from_name("huggingface-secret")],
+    secrets=[
+        modal.Secret.from_name("huggingface-secret"),
+        modal.Secret.from_dict({"API_KEY": "dev-secret-key"}) # Placeholder for actual Modal Secret
+    ],
     timeout=300, # 5 min max per request
     scaledown_window=120, # scale to 0 after 2 mins idle
     concurrency_limit=5, # Limit concurrent containers to prevent cost exhaustion
@@ -73,6 +76,19 @@ class GSVMathModel:
             if image_url:
                 if not (image_url.startswith("http://") or image_url.startswith("https://")):
                     return {"error": "Invalid image URL scheme. SSRF protection blocked request."}
+                
+                # SSRF Protection: Block private IPs
+                from urllib.parse import urlparse
+                import socket
+                import ipaddress
+                try:
+                    hostname = urlparse(image_url).hostname
+                    ip = socket.gethostbyname(hostname)
+                    if ipaddress.ip_address(ip).is_private:
+                        return {"error": "SSRF protection blocked request to private network."}
+                except Exception:
+                    return {"error": "Failed to resolve image URL hostname."}
+
                 import urllib.request
                 req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
                 # SSRF Protection: Add strict timeout
@@ -109,18 +125,28 @@ class GSVMathModel:
 
     @modal.asgi_app()
     def serve(self):
-        from fastapi import FastAPI, Request
+        from fastapi import FastAPI, Request, Depends, HTTPException
         from fastapi.middleware.cors import CORSMiddleware
+        from fastapi.security.api_key import APIKeyHeader
         
         web_app = FastAPI()
+        
+        # Restrict CORS to Vercel and local dev
         web_app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"], # Allow Vercel domain in production
+            allow_origins=["https://gsv-math.vercel.app", "http://localhost:3000"], 
             allow_methods=["*"],
             allow_headers=["*"],
         )
         
-        @web_app.post("/solve")
+        api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+        API_KEY = os.environ.get("API_KEY", "dev-secret-key")
+
+        async def verify_api_key(api_key: str = Depends(api_key_header)):
+            if api_key != API_KEY:
+                raise HTTPException(status_code=403, detail="Could not validate API Key credentials")
+        
+        @web_app.post("/solve", dependencies=[Depends(verify_api_key)])
         async def solve_route(request: Request):
             data = await request.json()
             return self._solve_internal(data)

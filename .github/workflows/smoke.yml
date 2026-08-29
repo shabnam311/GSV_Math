@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   smoke-test:
@@ -22,6 +22,6 @@ jobs:
         run: pip install requests pillow
 
       # Note: We run the smoke test against the live Modal API to verify the contract is intact.
-      # If this is too flaky, we should mock the endpoint.
+      # WARNING: This costs real Modal GPU time. Do not run this on external forks/PRs automatically!
       - name: Run E2E Smoke Test
         run: python scripts/e2e_test.py

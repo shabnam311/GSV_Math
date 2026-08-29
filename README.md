@@ -23,7 +23,17 @@ The model was fine-tuned and evaluated against mathematical reasoning benchmarks
 |--------|----------|
 | Zero-shot Baseline | 16.30% |
 | **Fine-Tuned (Tested on Mathtestmini)** | **68.30%** |
-| Fine-Tuned (Tested on Math360k) | 94.00% |
+| Fine-Tuned (Tested on Math360k) | 90.60% |
+
+
+## Known Limitations & VDS Findings
+While the model achieves 90.60% accuracy on the MathV360K holdout set when provided with the image, rigorous ablation testing reveals a critical limitation in its visual grounding. 
+
+We computed the **Vision-Dependency Score (VDS)** by evaluating the model on the exact same questions with the images entirely removed (blind evaluation). 
+* **With-Image Accuracy:** 90.60%
+* **Blind Accuracy:** 88.20%
+
+A McNemar's statistical significance test yielded **p = 0.15**, meaning the difference between seeing the image and being blind is *not statistically significant*. The model is heavily relying on the text of the multiple-choice questions rather than genuinely grounding its reasoning in the visual geometry.
 
 ## Live Demo
 The application features a custom, lightweight "paper worksheet" UI that interacts directly with the serverless GPU backend.
@@ -83,4 +93,5 @@ npm run dev
 ## Acknowledgements
 * Fine-tuning powered by [Unsloth](https://github.com/unslothai/unsloth)
 * VLM architecture provided by [Qwen](https://github.com/QwenLM/Qwen2.5-VL)
+
 
