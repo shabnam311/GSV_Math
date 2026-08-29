@@ -124,7 +124,7 @@ class GSVMathModel:
             return {"error": str(e)}
 
     @modal.asgi_app()
-    def serve(self):
+    def solve(self):
         from fastapi import FastAPI, Request, Depends, HTTPException
         from fastapi.middleware.cors import CORSMiddleware
         from fastapi.security.api_key import APIKeyHeader
@@ -146,7 +146,7 @@ class GSVMathModel:
             if api_key != API_KEY:
                 raise HTTPException(status_code=403, detail="Could not validate API Key credentials")
         
-        @web_app.post("/solve", dependencies=[Depends(verify_api_key)])
+        @web_app.post("/", dependencies=[Depends(verify_api_key)])
         async def solve_route(request: Request):
             data = await request.json()
             return self._solve_internal(data)
@@ -158,5 +158,6 @@ class GSVMathModel:
 @modal.fastapi_endpoint(method="GET")
 def health():
     return {"status": "ok", "message": "Modal backend is reachable."}
+
 
 
