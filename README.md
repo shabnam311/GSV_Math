@@ -44,8 +44,9 @@ The application features a custom, lightweight "paper worksheet" UI that interac
 ## Project Structure
 ```text
 GSV_Math/
-├─ backend/            # Modal serverless GPU backend (FastAPI)
-│  ├─ modal_app.py    # Endpoint definitions and Model loading
+├─ backend/            # Backend deployment options
+│  ├─ modal_app.py    # Modal serverless GPU backend (FastAPI)
+│  ├─ hf_space/       # Hugging Face CPU Basic backend (llama.cpp Docker)
 │  └─ pipeline/       # CISC voting, prompt formatting, model inference
 ├─ frontend/           # Next.js React web application
 │  ├─ src/app/        # Page routing, React components, and CSS
@@ -71,6 +72,19 @@ modal setup
 modal deploy backend/modal_app.py
 ```
 This will output a live URL for your GPU endpoint.
+
+### 1.2 Alternative: Deploy the CPU Backend (Hugging Face Spaces)
+If your Modal credits run out, you can host the model permanently for free on Hugging Face Spaces using `llama.cpp` + Docker SDK on a CPU Basic instance. Note: To preserve CPU latency, visual verification modules (CLIP/OWL-ViT/SymPy) are disabled on this path.
+
+1. Ensure your model files (Base GGUF, mmproj, and LoRA adapter GGUF) are uploaded to a Hugging Face Model repository (e.g., `Shabuuuuuuuuuuu/GSV-Math-GGUF`).
+2. Create a new Space on Hugging Face:
+   * **SDK:** Docker
+   * **Hardware:** CPU Basic (free)
+3. Set your Space Secrets in Settings:
+   * `HF_TOKEN` = Your Hugging Face read token
+   * `API_KEY` = `dev-secret-key` (or matching your frontend api key)
+4. Push the contents of the `backend/hf_space/` directory to your Space git repository.
+5. Hugging Face will build the container, start `llama-server` in CPU-optimized mode, and launch the FastAPI proxy on port 7860. Your Vercel backend URL will be: `https://<hf-username>-<space-name>.hf.space`.
 
 ### 2. Deploy the Frontend (Vercel)
 Import the repository into Vercel. During the setup process:
