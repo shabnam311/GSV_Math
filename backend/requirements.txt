@@ -11,3 +11,4 @@ spacy
 Pillow
 huggingface_hub
 modal
+spaces
