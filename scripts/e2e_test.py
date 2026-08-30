@@ -4,7 +4,7 @@ import requests
 from PIL import Image, ImageDraw
 import io
 
-API_URL = "https://shabnam311--gsv-math-backend-gsvmathmodel-solve.modal.run"
+API_URL = "https://shabnam-offl--gsv-math-backend-gsvmathmodel-solve.modal.run"
 
 def create_test_image():
     img = Image.new('RGB', (100, 100), color='white')
@@ -22,7 +22,10 @@ def test_api():
         "num_samples": 1
     }
     try:
-        resp = requests.post(API_URL, json=payload, headers={"Content-Type": "application/json"})
+        resp = requests.post(API_URL, json=payload, headers={
+            "Content-Type": "application/json",
+            "X-API-Key": "dev-secret-key"
+        })
         print("Status Code:", resp.status_code)
         print("Response:", json.dumps(resp.json(), indent=2))
     except Exception as e:
