@@ -13,6 +13,8 @@ print("OPTIONS Status:", r1.status_code)
 print("OPTIONS Headers:", r1.headers)
 
 # Test 2: POST request
-r2 = requests.post(url, json={"question": "test"}, headers={"X-API-Key": "dev-secret-key"})
+import os
+api_key = os.environ.get("API_KEY", "dev-secret-key")
+r2 = requests.post(url, json={"question": "test"}, headers={"X-API-Key": api_key})
 print("POST Status:", r2.status_code)
 print("POST Response:", r2.text)

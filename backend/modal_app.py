@@ -136,7 +136,9 @@ class GSVMathModel:
         )
 
         api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
-        API_KEY = os.environ.get("API_KEY", "dev-secret-key")
+        API_KEY = os.environ.get("API_KEY")
+        if not API_KEY:
+            raise RuntimeError("API_KEY environment variable is not set!")
 
         async def verify_api_key(api_key: str = Depends(api_key_header)):
             if api_key != API_KEY:
