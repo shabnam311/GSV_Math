@@ -44,8 +44,8 @@ hf_cache_vol = modal.Volume.from_name("huggingface-cache", create_if_missing=Tru
         modal.Secret.from_name("huggingface-secret"),
         modal.Secret.from_name("api-key")
     ],
-    timeout=300,
-    scaledown_window=120,
+    timeout=600,
+    scaledown_window=600,
     max_containers=5,
 )
 class GSVMathModel:
