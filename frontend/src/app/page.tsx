@@ -36,11 +36,23 @@ const SAMPLES = {
   },
   pythagoras: {
     question: "Find the length of the hypotenuse c.",
-    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/400px-Pythagorean.svg.png"
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
+        <polygon points="100,220 300,220 100,70" fill="none" stroke="#1f2430" stroke-width="2.5"/>
+        <rect x="100" y="200" width="20" height="20" fill="none" stroke="#1f2430" stroke-width="1.5"/>
+        <text x="190" y="245" font-family="monospace" font-size="15" fill="#1f2430">a = 4</text>
+        <text x="40" y="150" font-family="monospace" font-size="15" fill="#1f2430">b = 3</text>
+        <text x="210" y="135" font-family="monospace" font-size="15" fill="#1f2430">c = ?</text>
+      </svg>`
   },
   venn: {
     question: "What is the intersection of set A and B?",
-    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Venn_0110.svg/400px-Venn_0110.svg.png"
+    svg: `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" style="background:#fff">
+        <circle cx="160" cy="150" r="80" fill="#3a5f7d" fill-opacity="0.3" stroke="#1f2430" stroke-width="2"/>
+        <circle cx="240" cy="150" r="80" fill="#a3372a" fill-opacity="0.3" stroke="#1f2430" stroke-width="2"/>
+        <text x="110" y="155" font-family="monospace" font-size="16" fill="#1f2430">A={1,2}</text>
+        <text x="235" y="155" font-family="monospace" font-size="16" fill="#1f2430">B={2,3}</text>
+        <text x="195" y="155" font-family="monospace" font-size="16" fill="#1f2430">2</text>
+      </svg>`
   }
 };
 
@@ -66,28 +78,6 @@ function svgToBase64Png(svgString: string): Promise<string> {
   });
 }
 
-function fetchImageUrlToBase64(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
-    img.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctx.fillStyle = "#fff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
-      } else {
-        reject("Failed to create canvas context");
-      }
-    };
-    img.onerror = () => reject("Failed to load image");
-    img.src = url;
-  });
-}
 
 export default function Home() {
   const [imageBase64, setImageBase64] = useState<string | null>(null);
@@ -138,16 +128,11 @@ export default function Home() {
   const loadSample = async (key: keyof typeof SAMPLES) => {
     try {
       const s = SAMPLES[key];
-      let dataUrl;
-      if ('url' in s) {
-        dataUrl = await fetchImageUrlToBase64(s.url);
-      } else {
-        dataUrl = await svgToBase64Png(s.svg);
-      }
+      const dataUrl = await svgToBase64Png(s.svg);
       handleImage(dataUrl);
       setQuestion(s.question);
     } catch (e) {
-      alert("Failed to load sample image. It might be blocked by CORS.");
+      alert("Failed to load sample image.");
     }
   };
 
