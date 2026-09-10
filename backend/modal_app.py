@@ -130,7 +130,7 @@ class GSVMathModel:
 
         web_app.add_middleware(
             CORSMiddleware,
-            allow_origins=["https://gsv-math.vercel.app", "http://localhost:3000"],
+            allow_origins=["*"],
             allow_methods=["*"],
             allow_headers=["*"],
         )
