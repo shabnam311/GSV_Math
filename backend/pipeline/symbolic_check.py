@@ -5,14 +5,20 @@ from sympy.parsing.sympy_parser import parse_expr, standard_transformations, imp
 def verify_equations(reasoning_text: str):
     """
     Extracts algebraic equations and verifies them with sympy.
+    
+    Strategy:
+    - Pure numeric equations (e.g., "2 * 3 + 1 = 7"): verify via simplify(lhs - rhs) == 0
+    - Equations with free symbols (e.g., "x + 5 = 12"): skip (return None for that equation)
+      because simplify(lhs - rhs) checks identity-for-all-values, not solvability.
+    - Division by zero: explicitly flag as False (arithmetic error in reasoning)
+    
     Returns: True if consistent, False if inconsistent, None if no verifiable equations found.
     """
     if not reasoning_text:
         return None
         
     # Match equations with variables, multiple operators, parentheses
-    # E.g., "x + 5 = 12", "(5 * 6) / 2 = 15"
-    equation_pattern = re.compile(r'([a-zA-Z0-9\.\-\+\*\/\(\)\s]+)=([a-zA-Z0-9\.\-\+\*\/\(\)\s]+)')
+    equation_pattern = re.compile(r'([a-zA-Z0-9\.\-\+\*\/\(\)\s\^]+)=([a-zA-Z0-9\.\-\+\*\/\(\)\s\^]+)')
     matches = equation_pattern.findall(reasoning_text)
     
     if not matches:
@@ -24,23 +30,29 @@ def verify_equations(reasoning_text: str):
     
     for match in matches:
         left_str, right_str = match
-        # Clean up whitespace
         left_str = left_str.strip()
         right_str = right_str.strip()
         
-        # Skip trivial matches or empty strings
-        if not left_str or not right_str or len(left_str) < 1 or len(right_str) < 1:
+        # Skip trivial/empty matches
+        if not left_str or not right_str:
             continue
             
         try:
             left_val = parse_expr(left_str, transformations=transformations)
             right_val = parse_expr(right_str, transformations=transformations)
             
-            # Symbolic comparison: simplify(lhs - rhs) == 0
             diff = sympy.simplify(left_val - right_val)
             
+            # Check for free symbols — if present, this is a variable equation
+            # (e.g., "x + 5 = 12"). We cannot verify these with simplify(lhs-rhs)==0
+            # because that checks algebraic identity for ALL values, not solvability.
+            # Skip these rather than mislabeling them as contradictions.
+            if diff.free_symbols:
+                print(f"Skipping variable equation '{left_str} = {right_str}' (has free symbols: {diff.free_symbols})")
+                continue
+            
             if diff != 0:
-                return False # Found a contradiction
+                return False # Found an arithmetic contradiction
                 
             verified_any = True
         except ZeroDivisionError:
