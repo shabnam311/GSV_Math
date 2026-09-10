@@ -33,6 +33,14 @@ const SAMPLES = {
         <text x="140" y="180" font-family="monospace" font-size="15" fill="#1f2430">65°</text>
         <text x="230" y="180" font-family="monospace" font-size="15" fill="#1f2430">?</text>
       </svg>`
+  },
+  pythagoras: {
+    question: "Find the length of the hypotenuse c.",
+    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Pythagorean.svg/400px-Pythagorean.svg.png"
+  },
+  venn: {
+    question: "What is the intersection of set A and B?",
+    url: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/Venn_0110.svg/400px-Venn_0110.svg.png"
   }
 };
 
@@ -54,6 +62,29 @@ function svgToBase64Png(svgString: string): Promise<string> {
       URL.revokeObjectURL(url);
       resolve(canvas.toDataURL("image/png"));
     };
+    img.src = url;
+  });
+}
+
+function fetchImageUrlToBase64(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "Anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL("image/png"));
+      } else {
+        reject("Failed to create canvas context");
+      }
+    };
+    img.onerror = () => reject("Failed to load image");
     img.src = url;
   });
 }
@@ -105,10 +136,19 @@ export default function Home() {
   };
 
   const loadSample = async (key: keyof typeof SAMPLES) => {
-    const s = SAMPLES[key];
-    const dataUrl = await svgToBase64Png(s.svg);
-    handleImage(dataUrl);
-    setQuestion(s.question);
+    try {
+      const s = SAMPLES[key];
+      let dataUrl;
+      if ('url' in s) {
+        dataUrl = await fetchImageUrlToBase64(s.url);
+      } else {
+        dataUrl = await svgToBase64Png(s.svg);
+      }
+      handleImage(dataUrl);
+      setQuestion(s.question);
+    } catch (e) {
+      alert("Failed to load sample image. It might be blocked by CORS.");
+    }
   };
 
   const handleSolve = async () => {
@@ -264,6 +304,22 @@ export default function Home() {
                     <span style={{fontFamily: "var(--font-mono)", fontSize: "0.75rem", backgroundColor: "var(--paper-line-soft)", padding: "4px 8px", borderRadius: "4px", color: "var(--ink-soft)"}}>N/A</span>
                   </div>
                 )}
+                {typeof result.owl_grounding_score === "number" && (
+                  <div style={{display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.875rem"}}>
+                    <span style={{fontFamily: "var(--font-sans)", color: "var(--ink)", fontWeight: 500}}>Hallucination Detected</span>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", 
+                      fontSize: "0.75rem", 
+                      padding: "4px 8px", 
+                      borderRadius: "4px",
+                      backgroundColor: result.owl_grounding_score < 0.5 ? '#f8d7da' : '#d1e7dd',
+                      color: result.owl_grounding_score < 0.5 ? '#842029' : '#0f5132',
+                      fontWeight: 600
+                    }}>
+                      {result.owl_grounding_score < 0.5 ? 'YES' : 'NO'}
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -322,6 +378,8 @@ export default function Home() {
                   <button className="chip" onClick={() => loadSample("triangle")}>triangle</button>
                   <button className="chip" onClick={() => loadSample("bars")}>bar chart</button>
                   <button className="chip" onClick={() => loadSample("angles")}>angle pair</button>
+                  <button className="chip" onClick={() => loadSample("pythagoras")}>pythagoras</button>
+                  <button className="chip" onClick={() => loadSample("venn")}>venn diagram</button>
                 </div>
               </div>
             </div>
