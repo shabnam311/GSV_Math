@@ -1,6 +1,6 @@
 import re
 import sympy
-from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
+from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application, convert_xor
 
 def verify_equations(reasoning_text: str):
     """
@@ -24,7 +24,7 @@ def verify_equations(reasoning_text: str):
     if not matches:
         return None
         
-    transformations = (standard_transformations + (implicit_multiplication_application,))
+    transformations = (standard_transformations + (implicit_multiplication_application, convert_xor))
     
     verified_any = False
     
