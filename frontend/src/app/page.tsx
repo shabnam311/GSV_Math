@@ -318,11 +318,11 @@ export default function Home() {
                       fontSize: "0.75rem", 
                       padding: "4px 8px", 
                       borderRadius: "4px",
-                      backgroundColor: result.owl_grounding_score < 0.5 ? '#f8d7da' : '#d1e7dd',
-                      color: result.owl_grounding_score < 0.5 ? '#842029' : '#0f5132',
+                      backgroundColor: (() => { const o = typeof result.owl_grounding_score === 'number' ? result.owl_grounding_score : 0.5; const c = typeof result.clip_alignment_score === 'number' ? result.clip_alignment_score : 0.5; return (result.symbolic_check_passed === false || (0.4*o + 0.6*c) < 0.4); })() ? '#f8d7da' : '#d1e7dd',
+                      color: (() => { const o = typeof result.owl_grounding_score === 'number' ? result.owl_grounding_score : 0.5; const c = typeof result.clip_alignment_score === 'number' ? result.clip_alignment_score : 0.5; return (result.symbolic_check_passed === false || (0.4*o + 0.6*c) < 0.4); })() ? '#842029' : '#0f5132',
                       fontWeight: 600
                     }}>
-                      {result.owl_grounding_score < 0.5 ? 'YES' : 'NO'}
+                      {(() => { const o = typeof result.owl_grounding_score === 'number' ? result.owl_grounding_score : 0.5; const c = typeof result.clip_alignment_score === 'number' ? result.clip_alignment_score : 0.5; return (result.symbolic_check_passed === false || (0.4*o + 0.6*c) < 0.4); })() ? 'YES' : 'NO'}
                     </span>
                   </div>
                 )}
