@@ -46,8 +46,12 @@ def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
         # Module 5: Symbolic Verification
         sympy_passed = verify_equations(output_text)
         
+        # Handle None values (unable to verify) safely without failing open
+        safe_owl = owl_score if owl_score is not None else 0.5
+        safe_clip = clip_score if clip_score is not None else 0.5
+        
         # Combine confidence
-        confidence = (0.5 * owl_score) + (0.5 * clip_score)
+        confidence = (0.5 * safe_owl) + (0.5 * safe_clip)
         
         # Penalty for failed symbolic check
         if sympy_passed is False:

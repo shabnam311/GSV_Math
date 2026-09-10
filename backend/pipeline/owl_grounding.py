@@ -1,4 +1,4 @@
-﻿import torch
+import torch
 import spacy
 from transformers import OwlViTProcessor, OwlViTForObjectDetection
 
@@ -17,15 +17,28 @@ def get_owl_tools():
 
 def extract_visual_claims(text, nlp):
     doc = nlp(text)
-    nouns = [chunk.text.lower().strip() for chunk in doc.noun_chunks if len(chunk.text.split()) < 4]
-    return list(set(nouns))[:10]
+    
+    # Common concrete visual geometry/math terms + physical objects
+    visual_terms = {"triangle", "circle", "square", "rectangle", "line", "angle", "vertex", "axis", "point", "graph", "chart", "bar", "box", "dice", "clock", "laptop", "car", "apple", "coin", "table", "hypotenuse", "edge"}
+    
+    nouns = []
+    for chunk in doc.noun_chunks:
+        if len(chunk.text.split()) < 4:
+            # Basic heuristic: check if any word in the chunk is in our visual allowlist
+            chunk_lower = chunk.text.lower().strip()
+            if any(term in chunk_lower for term in visual_terms):
+                nouns.append(chunk_lower)
+    
+    # Deterministic deduplication
+    unique_nouns = list(dict.fromkeys(nouns))
+    return unique_nouns[:10]
 
 def owl_grounding_score(image, text):
     try:
         model, processor, nlp = get_owl_tools()
         claims = extract_visual_claims(text, nlp)
         if not claims:
-            return 1.0
+            return None # Fail open fix: return None if unable to verify
 
         inputs = processor(
             text=[claims],
@@ -44,4 +57,4 @@ def owl_grounding_score(image, text):
         return max_confidences.mean().item()
     except Exception as e:
         print(f"OWL-ViT grounding failed: {e}")
-        return 1.0
+        return None # Fail open fix: return None on exception

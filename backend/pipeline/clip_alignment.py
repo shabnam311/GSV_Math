@@ -1,4 +1,4 @@
-﻿import torch
+import torch
 from PIL import Image
 from transformers import CLIPModel, CLIPProcessor
 
@@ -16,23 +16,27 @@ def get_clip_model():
 
 def clip_alignment_score(image: Image.Image, reasoning_text: str) -> float:
     try:
+        if not reasoning_text or not reasoning_text.strip():
+            return None # Fail open fix: return None if no text to check
+            
         model, processor = get_clip_model()
         
-        # Truncate text roughly to CLIP's 77 token limit (by character length to be safe)
+        # Truncate text roughly to CLIP's 77 token limit
         truncated_text = reasoning_text[:300]
-        
+        if len(reasoning_text) > 300:
+            print("Warning: CLIP reasoning text truncated.")
+            
         inputs = processor(text=[truncated_text], images=image, return_tensors="pt", padding=True, truncation=True)
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         
         with torch.no_grad():
             outputs = model(**inputs)
             
-        # CLIP logits are typically scaled around 15-35 for good matches
         logit = outputs.logits_per_image.item()
         
-        # Normalize to roughly a 0.0 - 1.0 scale 
+        # Normalize to roughly a 0.0 - 1.0 scale
         score = max(0.0, min(1.0, logit / 30.0))
         return score
     except Exception as e:
         print(f"CLIP alignment failed: {e}")
-        return 1.0 # Neutral baseline if fails
+        return None # Fail open fix: return None on exception
