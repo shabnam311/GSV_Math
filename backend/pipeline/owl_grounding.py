@@ -18,13 +18,24 @@ def get_owl_tools():
 def extract_visual_claims(text, nlp):
     doc = nlp(text)
     
-    # Common concrete visual geometry/math terms + physical objects
-    visual_terms = {"triangle", "circle", "square", "rectangle", "line", "angle", "vertex", "axis", "point", "graph", "chart", "bar", "box", "dice", "clock", "laptop", "car", "apple", "coin", "table", "hypotenuse", "edge"}
+    # Comprehensive visual geometry, math, and diagram components
+    visual_terms = {
+        # Geometric shapes
+        "triangle", "circle", "square", "rectangle", "polygon", "quadrilateral", "trapezoid", "parallelogram",
+        "ellipse", "cube", "cylinder", "cone", "sphere", "pyramid",
+        # Geometric elements
+        "line", "segment", "ray", "angle", "vertex", "vertices", "axis", "axes", "point", "edge", "side",
+        "hypotenuse", "leg", "base", "height", "altitude", "radius", "diameter", "circumference",
+        "perimeter", "sector", "chord", "tangent", "secant", "arc", "center", "origin", "diagonal",
+        # Diagram elements
+        "graph", "chart", "bar", "box", "grid", "arrow", "tick", "curve", "region", "shaded region", "overlap",
+        # Real-world objects (used in applied math / counting problems)
+        "dice", "clock", "watch", "laptop", "car", "apple", "coin", "table", "block", "box"
+    }
     
     nouns = []
     for chunk in doc.noun_chunks:
         if len(chunk.text.split()) < 4:
-            # Basic heuristic: check if any word in the chunk is in our visual allowlist
             chunk_lower = chunk.text.lower().strip()
             if any(term in chunk_lower for term in visual_terms):
                 nouns.append(chunk_lower)

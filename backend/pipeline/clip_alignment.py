@@ -14,6 +14,22 @@ def get_clip_model():
         _clip_model = CLIPModel.from_pretrained(model_id).to("cuda" if torch.cuda.is_available() else "cpu")
     return _clip_model, _clip_processor
 
+def select_salient_text(text: str, max_chars: int = 300) -> str:
+    """
+    Selects text for CLIP evaluation. If the text is longer than max_chars,
+    preserves both the initial context (first ~100 chars) and the concluding
+    deduction (last ~200 chars) rather than chopping off the final answer.
+    """
+    cleaned = text.strip()
+    if len(cleaned) <= max_chars:
+        return cleaned
+    
+    head_len = 100
+    tail_len = max_chars - head_len - 5 # allowance for ellipsis
+    head = cleaned[:head_len].rsplit(' ', 1)[0]
+    tail = cleaned[-tail_len:].split(' ', 1)[-1]
+    return f"{head} ... {tail}"
+
 def clip_alignment_score(image: Image.Image, reasoning_text: str) -> float:
     try:
         if not reasoning_text or not reasoning_text.strip():
@@ -21,12 +37,10 @@ def clip_alignment_score(image: Image.Image, reasoning_text: str) -> float:
             
         model, processor = get_clip_model()
         
-        # Truncate text roughly to CLIP's 77 token limit
-        truncated_text = reasoning_text[:300]
-        if len(reasoning_text) > 300:
-            print("Warning: CLIP reasoning text truncated.")
+        # Smart text selection to preserve the final conclusion
+        selected_text = select_salient_text(reasoning_text, max_chars=300)
             
-        inputs = processor(text=[truncated_text], images=image, return_tensors="pt", padding=True, truncation=True)
+        inputs = processor(text=[selected_text], images=image, return_tensors="pt", padding=True, truncation=True)
         inputs = {k: v.to(model.device) for k, v in inputs.items()}
         
         with torch.no_grad():
