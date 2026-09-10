@@ -136,7 +136,7 @@ export default function Home() {
 
   const loadSample = async (key: keyof typeof SAMPLES) => {
     try {
-      const s = SAMPLES[key];
+      const s = SAMPLES[key] as any;
       const dataUrl = s.base64 ? s.base64 : await svgToBase64Png(s.svg);
       handleImage(dataUrl);
       setQuestion(s.question);
