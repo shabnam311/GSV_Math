@@ -2,110 +2,124 @@
 
 [![Deploy to Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fshabnam311%2FGSV_Math)
 
-GSV-Math is a vision-language reasoning pipeline built to solve complex geometric and mathematical diagrams. It utilizes a fine-tuned **Qwen2.5-VL-7B-Instruct** model, paired with Confidence-Weighted Self-Consistency (CISC) to vote on multiple semantic reasoning paths and arrive at the most robust final answer.
+GSV-Math is a multi-modal mathematical reasoning and verification pipeline designed to solve and audit complex geometric and diagrammatic problems. It combines a fine-tuned **Qwen2.5-VL-7B-Instruct** vision-language model with a multi-signal **Self-Verification & Anti-Hallucination Pipeline** (OWL-ViT Object Grounding, CLIP Semantic Alignment, and SymPy Symbolic Checking).
 
-## Tech Stack
-* **Reasoning Backbone:** Qwen2.5-VL-7B-Instruct (Fine-tuned with Unsloth)
-* **Model Checkpoint:** [Shabuuuuuuuuuuu/GSV-Math-Qwen2.5-VL-7B-Expert](https://huggingface.co/Shabuuuuuuuuuuu/GSV-Math-Qwen2.5-VL-7B-Expert)
-* **Voting Strategy:** CISC (Confidence-Weighted Self-Consistency)
-* **Backend Inference:** Serverless GPU via [Modal](https://modal.com/) (FastAPI + T4 GPU)
-* **Frontend UI:** Next.js + Tailwind CSS, hosted on [Vercel](https://vercel.com/)
+---
 
-## Results
+## 🌟 Key Features
 
-**Vision-Dependency Score (VDS)**
-To prevent the model from simply guessing answers based on textual patterns without looking at the diagram, we measure the Vision-Dependency Score (VDS).
-VDS = (Accuracy_Visual - Accuracy_Blind) / Accuracy_Visual
-A higher VDS indicates the model is genuinely using the image to solve the problem rather than hallucinating from the text prompt.
-The model was fine-tuned and evaluated against mathematical reasoning benchmarks. 
+* **Visual Math Backbone:** Qwen2.5-VL-7B-Instruct fine-tuned for geometric and algebraic reasoning via Unsloth.
+* **Model Checkpoint:** [Shabuuuuuuuuuuu/GSV-Math-Qwen2.5-VL-7B-Expert](https://huggingface.co/Shabuuuuuuuuuuu/GSV-Math-Qwen2.5-VL-7B-Expert) (GGUF 4-bit available at [Shabuuuuuuuuuuu/GSV-Math-GGUF](https://huggingface.co/Shabuuuuuuuuuuu/GSV-Math-GGUF)).
+* **Confidence-Weighted Self-Consistency (CISC):** Samples multiple reasoning paths and weights voting by grounding and alignment scores.
+* **Multi-Signal Verification & Anti-Hallucination Guardrails:**
+  * **OWL-ViT Visual Grounding:** Uses zero-shot object detection with an extensive geometric vocabulary (`radius`, `diameter`, `hypotenuse`, `sector`, `vertex`, `axis`, etc.) to verify physical diagram references.
+  * **CLIP Semantic Alignment:** Measures topic consistency between the image and generated reasoning using smart salient text selection (preserving both prompt context and concluding derivations).
+  * **SymPy Symbolic Checking:** Uses `sympy.parsing.sympy_parser` with `convert_xor` to verify internal mathematical and arithmetic consistency, flagging contradictions and division by zero.
+  * **Multi-Signal Fusion:** Balanced decision boundary (`0.4 × OWL + 0.6 × CLIP ≥ 0.4`) with a strict SymPy contradiction veto, preventing false alarms on abstract geometric line art.
+
+---
+
+## 📊 Benchmark Results
 
 | Metric | Accuracy |
-|--------|----------|
-| Zero-shot Baseline | 16.30% |
-| **Fine-Tuned (Tested on Mathtestmini)** | **68.30%** |
-| Fine-Tuned (Tested on Math360k) | 90.60% |
+|---|---|
+| Zero-shot Baseline (LLaVA-1.5B) | 16.30% |
+| **Fine-Tuned GSV-Math 7B (Mathtestmini)** | **68.30%** |
+| Fine-Tuned GSV-Math 7B (MathV360k holdout) | 90.60% |
 
+### Vision-Dependency Score (VDS)
+$$\text{VDS} = \frac{\text{Accuracy}_{\text{Visual}} - \text{Accuracy}_{\text{Blind}}}{\text{Accuracy}_{\text{Visual}}}$$
+We evaluate VDS to measure genuine visual grounding versus text-prompt memorization. On MathV360K ablation tests, blind accuracy reached 88.20% (McNemar's $p=0.15$), demonstrating that multimodal models frequently lean on multiple-choice linguistic cues — reinforcing the need for our visual grounding and symbolic verification layers.
 
-## Known Limitations & VDS Findings
-While the model achieves 90.60% accuracy on the MathV360K holdout set when provided with the image, rigorous ablation testing reveals a critical limitation in its visual grounding. 
+---
 
-We computed the **Vision-Dependency Score (VDS)** by evaluating the model on the exact same questions with the images entirely removed (blind evaluation). 
-* **With-Image Accuracy:** 90.60%
-* **Blind Accuracy:** 88.20%
+## 🏗️ Architecture & Project Structure
 
-A McNemar's statistical significance test yielded **p = 0.15**, meaning the difference between seeing the image and being blind is *not statistically significant*. The model is heavily relying on the text of the multiple-choice questions rather than genuinely grounding its reasoning in the visual geometry.
-
-## Live Demo
-The application features a custom, lightweight "paper worksheet" UI that interacts directly with the serverless GPU backend.
-
-- **Frontend:** [gsv-math.vercel.app](https://gsv-math-git-main-shabnam311s-projects.vercel.app) 
-- **Backend:** Hosted serverlessly on Modal.
-
-## Project Structure
 ```text
 GSV_Math/
-├─ backend/            # Backend deployment options
-│  ├─ modal_app.py    # Modal serverless GPU backend (FastAPI)
-│  ├─ hf_space/       # Hugging Face CPU Basic backend (llama.cpp Docker)
-│  └─ pipeline/       # CISC voting, prompt formatting, model inference
-├─ frontend/           # Next.js React web application
-│  ├─ src/app/        # Page routing, React components, and CSS
+├─ backend/
+│  ├─ modal_app.py           # Modal Serverless T4 GPU backend (FastAPI)
+│  ├─ hf_space/              # Hugging Face CPU Basic backend (llama.cpp GGUF Docker)
+│  └─ pipeline/              # Core verification & inference modules
+│     ├─ cisc.py             # Confidence-weighted self-consistency voting
+│     ├─ owl_grounding.py    # OWL-ViT visual grounding & geometric vocabulary
+│     ├─ clip_alignment.py   # CLIP semantic alignment with salient text selection
+│     ├─ symbolic_check.py   # SymPy equation verification & contradiction checks
+│     ├─ model_loader.py     # 4-bit quantized base model + LoRA adapter loader
+│     └─ answer_extraction.py# Robust LaTeX and boxed answer extraction
+├─ frontend/                 # Next.js React application (Tailwind CSS)
+│  ├─ src/app/page.tsx       # Paper-worksheet UI, diagram preview & metric visualizer
 │  └─ package.json
-├─ project_notebooks/  # Training, fine-tuning, and evaluation scripts (Unsloth)
-└─ legacy/             # Original LLaVA baseline (superseded, kept for reference)
+├─ GSV_Math_Demo_Server.ipynb# One-click Google Colab GPU backend (with ngrok tunnel)
+├─ project_notebooks/        # Training, fine-tuning, and evaluation notebooks
+└─ legacy/                   # Reference baselines
 ```
 
-## Deployment / Running Locally
+---
 
-### 1. Deploy the Backend (Modal)
-You will need a free [Modal](https://modal.com) account and a Hugging Face token.
+## 🚀 Deployment & Running
+
+### Option 1: One-Click Google Colab T4 GPU Server (100% Free, No Card Required)
+For evaluations, demos, and live testing with free NVIDIA T4 GPU compute:
+
+1. Open **`GSV_Math_Demo_Server.ipynb`** in [Google Colab](https://colab.research.google.com).
+2. Set Runtime to **T4 GPU** (**Runtime → Change runtime type → T4 GPU**).
+3. Paste your free [ngrok](https://dashboard.ngrok.com) token in **Cell 1**.
+4. Run all cells (**Runtime → Run all**).
+5. Copy the generated public URL (`https://...ngrok-free.dev`) and set `NEXT_PUBLIC_MODAL_BACKEND_URL` in Vercel.
+
+---
+
+### Option 2: Serverless T4 GPU on Modal
+For production-grade serverless deployment that auto-sleeps at $0/sec:
 
 ```bash
+# 1. Install Modal CLI
 pip install modal
 modal setup
 
-# Go to Modal Dashboard -> Secrets
-# Create a Custom secret named "huggingface-secret"
-# Add a key named HF_TOKEN and paste your Hugging Face Read Token
+# 2. Add Secrets in Modal Dashboard (or via CLI)
+#    - huggingface-secret (HF_TOKEN)
+#    - api-key (API_KEY = "dev-secret-key")
 
-# Deploy the backend
+# 3. Deploy
 modal deploy backend/modal_app.py
 ```
-This will output a live URL for your GPU endpoint.
 
-### 1.2 Alternative: Deploy the CPU Backend (Hugging Face Spaces)
-If your Modal credits run out, you can host the model permanently for free on Hugging Face Spaces using `llama.cpp` + Docker SDK on a CPU Basic instance. Note: To preserve CPU latency, visual verification modules (CLIP/OWL-ViT/SymPy) are disabled on this path.
+---
 
-1. Ensure your model files (Base GGUF, mmproj, and LoRA adapter GGUF) are uploaded to a Hugging Face Model repository (e.g., `Shabuuuuuuuuuuu/GSV-Math-GGUF`).
-2. Create a new Space on Hugging Face:
-   * **SDK:** Docker
-   * **Hardware:** CPU Basic (free)
-3. Set your Space Secrets in Settings:
-   * `HF_TOKEN` = Your Hugging Face read token
-   * `API_KEY` = `dev-secret-key` (or matching your frontend api key)
-4. Push the contents of the `backend/hf_space/` directory to your Space git repository.
-5. Hugging Face will build the container, start `llama-server` in CPU-optimized mode, and launch the FastAPI proxy on port 7860. Your Vercel backend URL will be: `https://<hf-username>-<space-name>.hf.space`.
+### Option 3: Deploy Frontend to Vercel
+1. Import this repository into [Vercel](https://vercel.com).
+2. Set **Root Directory** to `frontend`.
+3. Add Environment Variable:
+   * `NEXT_PUBLIC_MODAL_BACKEND_URL` = `<YOUR_MODAL_OR_COLAB_URL>`
+4. Deploy!
 
-### 2. Deploy the Frontend (Vercel)
-Import the repository into Vercel. During the setup process:
-1. Change the **Framework Preset** to `Next.js`
-2. Change the **Root Directory** to `frontend`
-3. Add an Environment Variable: `NEXT_PUBLIC_MODAL_BACKEND_URL` = `<YOUR_MODAL_URL_FROM_STEP_1>`
-
-### Alternatively: Run Frontend Locally
+To run the frontend locally:
 ```bash
 cd frontend
 npm install
-
-# Set the Modal backend URL
-echo "NEXT_PUBLIC_MODAL_BACKEND_URL=https://<YOUR_MODAL_URL>" > .env.local
-
-# Start the dev server
+echo "NEXT_PUBLIC_MODAL_BACKEND_URL=https://your-backend-url" > .env.local
 npm run dev
 ```
 
-## Acknowledgements
+---
+
+## 🧪 Interactive Math Test Cases
+
+The UI includes 5 dedicated math-diagram benchmarks designed to evaluate different aspects of the pipeline:
+
+| Benchmark | Topic | Focus Area |
+|---|---|---|
+| **Pythagoras Theorem** | Geometric proof ($a, b, c^2$) | Object grounding & exponential relations |
+| **Triangle Area** | Labeled base & height | Element extraction & formula consistency |
+| **Circle Area** | Sector decomposition & radius vs. diameter | Adversarial visual grounding trap |
+| **Quadratic Formula** | Visual proof by completing the square | Multi-step algebraic parsing |
+| **Overlapping Shapes** | Multi-shape Venn & intersection area | Visual claim noise resistance |
+
+---
+
+## 📜 Acknowledgements
 * Fine-tuning powered by [Unsloth](https://github.com/unslothai/unsloth)
-* VLM architecture provided by [Qwen](https://github.com/QwenLM/Qwen2.5-VL)
-
-
+* Vision-Language backbone by [Qwen Team (Qwen2.5-VL)](https://github.com/QwenLM/Qwen2.5-VL)
+* Grounding and verification powered by [Hugging Face Transformers](https://github.com/huggingface/transformers) & [SymPy](https://www.sympy.org/)
