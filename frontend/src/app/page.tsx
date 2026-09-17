@@ -176,7 +176,8 @@ export default function Home() {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
-          "X-API-Key": apiKey
+          "X-API-Key": apiKey,
+          "ngrok-skip-browser-warning": "true"
         },
         body: JSON.stringify({
           image_base64: imageBase64,
