@@ -95,8 +95,8 @@ class GSVMathModel:
                 image_bytes = base64.b64decode(image_b64)
                 img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
 
-            if max(img.size) > 768:
-                img.thumbnail((768, 768))
+            if max(img.size) > 396:
+                img.thumbnail((396, 396))
 
             from pipeline.cisc import cisc_generate_and_vote
 

@@ -43,15 +43,40 @@ async def verify_api_key(api_key: str = Depends(api_key_header)):
     if api_key != API_KEY:
         raise HTTPException(status_code=403, detail="Could not validate API Key credentials")
 
-# ---------- Answer extraction (ported from pipeline/answer_extraction.py) ----------
+# ---------- Answer extraction (fixed: audit D.15–D.20) ----------
+import unicodedata
+
+_UNICODE_MAP = {
+    '\u221a': 'sqrt', '\u00d7': '*', '\u00f7': '/', '\u03c0': 'pi',
+    '\u00b2': '^2', '\u00b3': '^3', '\u2070': '^0', '\u00b9': '^1',
+    '\u2074': '^4', '\u2075': '^5', '\u2076': '^6', '\u2077': '^7',
+    '\u2078': '^8', '\u2079': '^9', '\u2013': '-', '\u2014': '-',
+    '\u2212': '-', '\u00bd': '1/2', '\u00bc': '1/4', '\u00be': '3/4',
+    '\u2153': '1/3', '\u2154': '2/3', '\u00b0': '',
+}
+
+_UNITS = sorted([
+    'square units', 'sq units', 'cubic units', 'cu units',
+    'units', 'unit', 'centimeters', 'centimeter', 'cm\u00b2', 'cm2', 'cm',
+    'meters', 'meter', 'mm', 'm\u00b2', 'm2', 'm',
+    'inches', 'inch', 'in', 'feet', 'foot', 'ft',
+    'degrees', 'degree', 'deg', '\u00b0', 'radians', 'radian', 'rad',
+    'percent', '%', 'dollars', 'dollar', '$',
+], key=len, reverse=True)
+
 FINAL_ANSWER_PATTERNS = [
     r'\\boxed\{([^}]*)\}',
-    r'[Ff]inal\s*[Aa]nswer\s*[:\-]?\s*(.{1,80})',
+    r'(?:[Ss]o\s+)?[Tt]he\s+answer\s+is\s*[:\-]?\s*(.{1,80})',
     r'[Tt]herefore[,\s]+(?:the\s+)?(?:answer|value|result)\s+is\s*[:\-]?\s*(.{1,80})',
-    r'[Tt]he\s+answer\s+is\s*[:\-]?\s*(.{1,80})',
-    r'[Ss]o\s+the\s+answer\s+is\s*[:\-]?\s*(.{1,80})',
+    r'[Ff]inal\s*[Aa]nswer\s*[:\-=]\s*(.{1,80})',
+    r'[Ff]inal\s*[Aa]nswer\s+is\s*[:\-]?\s*(.{1,80})',
     r'=\s*(\S+)\s*$',
 ]
+
+def _canonicalize_unicode(text: str) -> str:
+    for uc, repl in _UNICODE_MAP.items():
+        text = text.replace(uc, repl)
+    return unicodedata.normalize('NFKD', text)
 
 def extract_answer(raw_text: str) -> str:
     if not isinstance(raw_text, str):
@@ -59,24 +84,33 @@ def extract_answer(raw_text: str) -> str:
     for pattern in FINAL_ANSWER_PATTERNS:
         matches = list(re.finditer(pattern, raw_text, re.IGNORECASE | re.DOTALL))
         if matches:
-            return matches[-1].group(1).strip()
+            ans = matches[-1].group(1).strip()
+            ans = re.split(r'[.\n]', ans)[0].strip()
+            if ans:
+                return ans
     idx = raw_text.lower().rfind("answer is")
     if idx != -1:
-        ans = raw_text[idx + 9:].strip().replace(":", "").replace(".", "").strip()
+        ans = raw_text[idx + 9:].strip()
+        ans = re.split(r'[.\n]', ans)[0].strip()
+        ans = ans.replace(":", "").strip()
         if ans:
             return ans
     words = raw_text.split()
     if words:
-        return words[-1]
+        return words[-1].rstrip('.,;:!?')
     return raw_text[-300:]
 
 def normalize_answer(ans: str) -> str:
     if not ans:
         return ""
+    ans = _canonicalize_unicode(ans)
     ans = ans.strip().lower()
-    for p in ["x=", "y=", "z=", "v=", "a=", "b=", "c="]:
-        if ans.startswith(p):
-            ans = ans[len(p):].strip()
+    ans = re.sub(r'^[a-z]\s*=\s*', '', ans)
+    for unit in _UNITS:
+        if ans.endswith(unit):
+            ans = ans[:-len(unit)].strip()
+            break
+    ans = ans.rstrip('.,;:!?')
     try:
         f = float(ans)
         return str(int(f)) if f.is_integer() else str(f)
@@ -116,6 +150,12 @@ async def solve_route(request: Request):
         # Build OpenAI-compatible chat request for llama-server
         messages = [
             {
+                "role": "system",
+                "content": "You are a math problem solver. Look at the image carefully, "
+                           "read the question, and solve it step by step. "
+                           "Show your work and end with: The answer is <your answer>."
+            },
+            {
                 "role": "user",
                 "content": [
                     {
@@ -136,7 +176,7 @@ async def solve_route(request: Request):
                 f"{LLAMA_SERVER}/v1/chat/completions",
                 json={
                     "messages": messages,
-                    "max_tokens": 256,
+                    "max_tokens": 512,
                     "temperature": 0.7,
                     "stream": False
                 }
