@@ -51,7 +51,7 @@ def cisc_generate_and_vote(model, processor, image, question, num_samples=3):
             max_new_tokens=512,
             max_length=None,
             use_cache=True,
-            temperature=0.7,
+            temperature=0.1,
             do_sample=True
         )
 

@@ -177,7 +177,7 @@ async def solve_route(request: Request):
                 json={
                     "messages": messages,
                     "max_tokens": 512,
-                    "temperature": 0.7,
+                    "temperature": 0.1,
                     "stream": False
                 }
             )
