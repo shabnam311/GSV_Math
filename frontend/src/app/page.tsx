@@ -224,8 +224,7 @@ export default function Home() {
     if (result) {
       const answer = result.answer ?? "—";
       const reasoning = result.reasoning as string | undefined;
-      const grounding = typeof result.grounding_confidence === "number" ? result.grounding_confidence : null;
-      const votes = (result.vote_distribution as Record<string, unknown>) || {};
+            const votes = (result.vote_distribution as Record<string, unknown>) || {};
       const maxVote = Math.max(1, ...Object.values(votes).map(v => v as number));
       
       return (
