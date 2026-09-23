@@ -231,12 +231,7 @@ export default function Home() {
       return (
         <>
           <div className="grade-row">
-            {grounding !== null && (
-              <div className="stamp-circle">
-                <div className="stamp-pct">{(grounding * 100).toFixed(0)}%</div>
-                <div className="stamp-caption">grounded</div>
-              </div>
-            )}
+            
             <div>
               <div className="answer-value">{answer as string}</div>
               <div className="answer-caption">final answer</div>
